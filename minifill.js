@@ -3,6 +3,7 @@ import './src/this.Window'
 import './src/window.HTMLElement'
 import './src/window.Node'
 
+import './src/Object.getPrototypeOf'
 import './src/Object.defineProperty'
 import './src/Object.assign'
 import './src/Object.create'
@@ -11,6 +12,7 @@ import './src/Object.values'
 
 import './src/Function.prototype.bind'
 
+import './src/Array.isArray'
 import './src/Array.from'
 import './src/Array.prototype.every'
 import './src/Array.prototype.find'
@@ -32,9 +34,9 @@ import './src/Number.isFinite'
 import './src/Number.isInteger'
 import './src/Number.isNaN'
 
-import './src/Element.prototype.matches'
-import './src/Element.prototype.classList'
-import './src/Element.prototype.closest'
+// import './src/Element.prototype.matches'
+// import './src/Element.prototype.classList'
+// import './src/Element.prototype.closest'
 
 import './src/String.prototype.includes'
 import './src/String.prototype.trim'

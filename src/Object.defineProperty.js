@@ -1,66 +1,29 @@
-(function (nativeDefineProperty) {
+// refer: https://github.com/RubyLouvre/object-defineproperty-ie8
+var origDefineProperty = Object.defineProperty;
 
-  var  
-      supportsAccessors = Object.prototype.hasOwnProperty.call(Object.prototype, '__defineGetter__'),
-      ERR_ACCESSORS_NOT_SUPPORTED = 'Getters & setters cannot be defined on this javascript engine',
-      ERR_VALUE_ACCESSORS = 'A property cannot both have accessors and be writable or have a value';
-
-  // Polyfill.io - This does not use CreateMethodProperty because our CreateMethodProperty function uses Object.defineProperty.
-  Object.defineProperty = function defineProperty(object, property, descriptor) {
-
-    // Where native support exists, assume it
-    if (nativeDefineProperty && (object === window || object === document || object === Element.prototype || object instanceof Element)) {
-      return nativeDefineProperty(object, property, descriptor);
+var arePropertyDescriptorsSupported = function() {
+  var obj = {};
+  try {
+    origDefineProperty(obj, "x", { enumerable: false, value: obj });
+    for (var _ in obj) {
+      return false;
     }
+    return obj.x === obj;
+  } catch (e) {
+    /* this is IE 8. */
+    return false;
+  }
+};
+var supportsDescriptors =
+  origDefineProperty && arePropertyDescriptorsSupported();
 
-    if (object === null || !(object instanceof Object || typeof object === 'object')) {
-      throw new TypeError('Object.defineProperty called on non-object');
-    }
-
-    if (!(descriptor instanceof Object)) {
-      throw new TypeError('Property description must be an object');
-    }
-
-    var propertyString = String(property);
-    var hasValueOrWritable = 'value' in descriptor || 'writable' in descriptor;
-    var getterType = 'get' in descriptor && typeof descriptor.get;
-    var setterType = 'set' in descriptor && typeof descriptor.set;
-
-    // handle descriptor.get
-    if (getterType) {
-      if (getterType !== 'function') {
-        throw new TypeError('Getter must be a function');
-      }
-      if (!supportsAccessors) {
-        throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
-      }
-      if (hasValueOrWritable) {
-        throw new TypeError(ERR_VALUE_ACCESSORS);
-      }
-      Object.__defineGetter__.call(object, propertyString, descriptor.get);
+if (!supportsDescriptors) {
+  Object.defineProperty = function(a, b, c) {
+    //IE8支持修改元素节点的属性
+    if (origDefineProperty && a.nodeType == 1) {
+      return origDefineProperty(a, b, c);
     } else {
-      object[propertyString] = descriptor.value;
+      a[b] = c.value || (c.get && c.get());
     }
-
-    // handle descriptor.set
-    if (setterType) {
-      if (setterType !== 'function') {
-        throw new TypeError('Setter must be a function');
-      }
-      if (!supportsAccessors) {
-        throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
-      }
-      if (hasValueOrWritable) {
-        throw new TypeError(ERR_VALUE_ACCESSORS);
-      }
-      Object.__defineSetter__.call(object, propertyString, descriptor.set);
-    }
-
-    // OK to define value unconditionally - if a getter has been specified as well, an error would be thrown above
-    if ('value' in descriptor) {
-      object[propertyString] = descriptor.value;
-    }
-
-    return object;
   };
-}(Object.defineProperty));
+};

@@ -1,6 +1,6 @@
 /*!
   * minifill.js v0.0.17 (https://thednp.github.io/minifill/)
-  * Copyright 2015-2021 © thednp
+  * Copyright 2015-2022 © thednp
   * Licensed under MIT (https://github.com/thednp/minifill/blob/master/LICENSE)
   */
  "use strict";
@@ -24,72 +24,67 @@ if (!window.HTMLElement) { window.HTMLElement = window.Element; }
 // Element
 if (!window.Node) { window.Node = window.Element; }
 
-(function (nativeDefineProperty) {
+// refer：https://gist.github.com/subtleGradient/1052392
+(function () {
+	if (typeof Object.getPrototypeOf != "function"){ (function(){
 
-  var  
-      supportsAccessors = Object.prototype.hasOwnProperty.call(Object.prototype, '__defineGetter__'),
-      ERR_ACCESSORS_NOT_SUPPORTED = 'Getters & setters cannot be defined on this javascript engine',
-      ERR_VALUE_ACCESSORS = 'A property cannot both have accessors and be writable or have a value';
+		Object.getPrototypeOf =
+			(typeof "".__proto__ == "object")
+			? function(object){
+				return getPrototypeValue(object, '__proto__');
+			}
+			: function(object){
+				return getPrototypeValue(object, 'constructor').prototype;
+			}
+		;
 
-  // Polyfill.io - This does not use CreateMethodProperty because our CreateMethodProperty function uses Object.defineProperty.
-  Object.defineProperty = function defineProperty(object, property, descriptor) {
 
-    // Where native support exists, assume it
-    if (nativeDefineProperty && (object === window || object === document || object === Element.prototype || object instanceof Element)) {
-      return nativeDefineProperty(object, property, descriptor);
+		function getPrototypeValue(object, propertyName){
+			try{
+				if (Object.prototype.hasOwnProperty.call(object, propertyName)){
+					var ownValue = object[propertyName];
+					delete object[propertyName];
+				}
+				return object[propertyName];
+			}
+			catch(e){throw e}
+			finally{
+				object[propertyName] = ownValue;
+			}
+		}
+
+	}()); }
+})();
+
+// refer: https://github.com/RubyLouvre/object-defineproperty-ie8
+var origDefineProperty = Object.defineProperty;
+
+var arePropertyDescriptorsSupported = function() {
+  var obj = {};
+  try {
+    origDefineProperty(obj, "x", { enumerable: false, value: obj });
+    for (var _ in obj) {
+      return false;
     }
+    return obj.x === obj;
+  } catch (e) {
+    /* this is IE 8. */
+    return false;
+  }
+};
+var supportsDescriptors =
+  origDefineProperty && arePropertyDescriptorsSupported();
 
-    if (object === null || !(object instanceof Object || typeof object === 'object')) {
-      throw new TypeError('Object.defineProperty called on non-object');
-    }
-
-    if (!(descriptor instanceof Object)) {
-      throw new TypeError('Property description must be an object');
-    }
-
-    var propertyString = String(property);
-    var hasValueOrWritable = 'value' in descriptor || 'writable' in descriptor;
-    var getterType = 'get' in descriptor && typeof descriptor.get;
-    var setterType = 'set' in descriptor && typeof descriptor.set;
-
-    // handle descriptor.get
-    if (getterType) {
-      if (getterType !== 'function') {
-        throw new TypeError('Getter must be a function');
-      }
-      if (!supportsAccessors) {
-        throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
-      }
-      if (hasValueOrWritable) {
-        throw new TypeError(ERR_VALUE_ACCESSORS);
-      }
-      Object.__defineGetter__.call(object, propertyString, descriptor.get);
+if (!supportsDescriptors) {
+  Object.defineProperty = function(a, b, c) {
+    //IE8支持修改元素节点的属性
+    if (origDefineProperty && a.nodeType == 1) {
+      return origDefineProperty(a, b, c);
     } else {
-      object[propertyString] = descriptor.value;
+      a[b] = c.value || (c.get && c.get());
     }
-
-    // handle descriptor.set
-    if (setterType) {
-      if (setterType !== 'function') {
-        throw new TypeError('Setter must be a function');
-      }
-      if (!supportsAccessors) {
-        throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
-      }
-      if (hasValueOrWritable) {
-        throw new TypeError(ERR_VALUE_ACCESSORS);
-      }
-      Object.__defineSetter__.call(object, propertyString, descriptor.set);
-    }
-
-    // OK to define value unconditionally - if a getter has been specified as well, an error would be thrown above
-    if ('value' in descriptor) {
-      object[propertyString] = descriptor.value;
-    }
-
-    return object;
   };
-}(Object.defineProperty));
+}
 
 if (typeof Object.assign !== 'function') {
   Object.defineProperty(Object, "assign", {
@@ -177,6 +172,12 @@ if (!Function.prototype.bind) {
       var funcArgs = args.concat(slice.call(arguments));
       return thatFunc.apply(thatArg, funcArgs);
     };
+  };
+}
+
+if (!Array.isArray) {
+  Array.isArray = function(arg) {
+    return Object.prototype.toString.call(arg) === '[object Array]';
   };
 }
 
@@ -660,57 +661,6 @@ if (!Number.isNaN) {
   Number.isNaN = function(value) {
     return typeof value === 'number'
       && value !== value;
-  };
-}
-
-if (!Element.prototype.matches) {
-  Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.oMatchesSelector || Element.prototype.msMatchesSelector || Element.prototype.mozMatchesSelector;
-}
-
-// Element.prototype.classList by Remy Sharp
-// updated by thednp
-if( !('classList' in Element.prototype) ) {
-  var ClassLIST = function(elem){
-    var classArr = (elem.getAttribute('class')||'').trim().split(/\s+/) || [];
-        
-    // methods
-    this.contains = function(classNAME){
-      return classArr.indexOf(classNAME) > -1;
-    };
-    this.add = function(classNAME){
-      if (!this.contains(classNAME)) {
-        classArr.push(classNAME);
-        elem.setAttribute('class', classArr.join(' '));
-      }
-    };
-    this.remove = function(classNAME){
-      if (this.contains(classNAME)) {
-        classArr.splice(classArr.indexOf(classNAME),1);
-        elem.setAttribute('class', classArr.join(' '));
-      }
-    };
-    this.toggle = function(classNAME){
-      if ( this.contains(classNAME) ) { this.remove(classNAME); } 
-      else { this.add(classNAME); } 
-    };
-  };
-  Object.defineProperty(Element.prototype, 'classList', { 
-    get: function () { 
-      return new ClassLIST(this)
-    } 
-  });
-}
-
-if (!Element.prototype.closest) {
-  Element.prototype.closest = function closest(selector) {
-    var node = this;
-  
-    while (node) {
-      if (node.matches(selector)) { return node; }
-      else { node = 'SVGElement' in window && node instanceof SVGElement ? node.parentNode : node.parentElement; }
-    }
-  
-    return null;
   };
 }
 
